@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <span class="display-1">{{ user.avatar }}</span>
+                <h3>{{ user.name }}</h3>
+                <p class="text-muted">{{ user.position }}</p>
+                <p>Отдел: {{ user.department }}</p>
+                <p>Дата найма: {{ user.hire_date }}</p>
+                <p>Проекты: {{ user.projects }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h4>Интересы (на основе прочитанного)</h4>
+            </div>
+            <div class="card-body">
+                {% if tags %}
+                    {% for tag, count in tags.items() %}
+                    <span class="badge bg-primary me-2 mb-2" style="font-size: 1rem;">
+                        #{{ tag }} ({{ count }})
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Пока нет данных о прочитанных материалах</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4>Последние действия</h4>
+            </div>
+            <div class="card-body">
+                {% if actions %}
+                    <ul class="list-group">
+                        {% for action in actions %}
+                        <li class="list-group-item">
+                            {{ action.action }}: {{ action.material }} ({{ action.date }})
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Нет действий</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

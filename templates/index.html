@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Добро пожаловать, {{ user.name }}!</h1>
+        <p class="text-muted">Ваша персональная статистика и рекомендации</p>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4"><div class="card bg-info text-white"><div class="card-body"><h5>Прочитано</h5><p class="display-4" id="stat-read">0</p></div></div></div>
+    <div class="col-md-4"><div class="card bg-success text-white"><div class="card-body"><h5>Сохранено</h5><p class="display-4" id="stat-saved">0</p></div></div></div>
+    <div class="col-md-4"><div class="card bg-warning text-dark"><div class="card-body"><h5>Просмотрено</h5><p class="display-4" id="stat-viewed">0</p></div></div></div>
+</div>
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card"><div class="card-header"><h3>Любимые теги</h3></div><div class="card-body" id="top-tags">Загрузка...</div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card"><div class="card-header"><h3>Последние действия</h3></div><div class="card-body" id="recent-actions">Загрузка...</div></div>
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card"><div class="card-header"><h3>Рекомендованные для вас</h3></div><div class="card-body" id="recommendations">Загрузка...</div></div>
+    </div>
+</div>
+<meta name="user-id" content="{{ user.id }}">
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = {{ user.id }};
+async function loadStats() {
+    try {
+        const response = await fetch(`/api/user/${userId}/stats`);
+        const data = await response.json();
+        document.getElementById('stat-read').innerText = data.total_read;
+        document.getElementById('stat-saved').innerText = data.total_saved;
+        document.getElementById('stat-viewed').innerText = data.total_viewed;
+        const tagsContainer = document.getElementById('top-tags');
+        if (data.top_tags.length) {
+            tagsContainer.innerHTML = data.top_tags.map(t => `<span class="badge bg-secondary me-2 p-2">#${t.tag} (${t.count})</span>`).join('');
+        } else {
+            tagsContainer.innerHTML = '<p class="text-muted">Пока нет данных</p>';
+        }
+    } catch (error) { console.error(error); }
+}
+async function loadRecentActions() {
+    // Здесь можно загрузить последние действия из /api/user/history и показать несколько
+    document.getElementById('recent-actions').innerHTML = '<p class="text-muted">Скоро здесь будет история</p>';
+}
+function createMaterialCard(material, isRecommendation = false) {
+    let statusIcons = '';
+    if (material.is_viewed) statusIcons += '<span class="badge bg-secondary me-1" title="Просмотрено">👁️</span>';
+    if (material.is_read) statusIcons += '<span class="badge bg-success me-1" title="Прочитано">✅</span>';
+    if (material.is_saved) statusIcons += '<span class="badge bg-warning me-1" title="Сохранено">🔖</span>';
+    let explanationHtml = '';
+    if (isRecommendation) {
+        setTimeout(() => loadExplanation(material.id, userId), 100);
+        explanationHtml = `<div id="explain-${material.id}" class="mt-2"><small class="text-muted">⏳ Загрузка объяснения...</small></div>`;
+    }
+    return `
+        <div class="card mb-3" id="card-${material.id}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start"><div>${statusIcons}</div>${isRecommendation ? '<span class="badge bg-primary">🤖 ИИ рекомендует</span>' : ''}</div>
+                <h5 class="card-title"><a href="/material/${material.id}" class="text-decoration-none text-light">${material.title}</a></h5>
+                <p class="card-text">${material.preview}</p>
+                <div class="mb-2">${(material.tags || []).map(tag => `<span class="badge bg-secondary me-1">#${tag}</span>`).join('')}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">${material.type} • ${material.department} • ${material.date}</small>
+                    <div>
+                        <button onclick="sendInteraction(${material.id}, 'view')" class="btn btn-sm btn-outline-info" ${material.is_viewed ? 'disabled' : ''}>👁️</button>
+                        <button onclick="sendInteraction(${material.id}, 'read')" class="btn btn-sm btn-outline-success" ${material.is_read ? 'disabled' : ''}>✅</button>
+                        <button onclick="sendInteraction(${material.id}, 'save')" class="btn btn-sm btn-outline-warning" ${material.is_saved ? 'disabled' : ''}>🔖</button>
+                    </div>
+                </div>
+                ${explanationHtml}
+            </div>
+        </div>
+    `;
+}
+async function loadRecommendations() {
+    const container = document.getElementById('recommendations');
+    container.innerHTML = '<div class="text-center">Загрузка...</div>';
+    try {
+        const response = await fetch(`/api/recommendations/${userId}`);
+        const data = await response.json();
+        container.innerHTML = '';
+        if (data.materials && data.materials.length) {
+            data.materials.forEach(m => container.innerHTML += createMaterialCard(m, true));
+        } else {
+            container.innerHTML = '<p class="text-muted">Нет рекомендаций</p>';
+        }
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger">Ошибка загрузки</p>';
+    }
+}
+async function loadExplanation(itemId, userId) {
+    try {
+        const response = await fetch(`/api/recommendations/${userId}/explain/${itemId}`);
+        const data = await response.json();
+        const explainDiv = document.getElementById(`explain-${itemId}`);
+        if (explainDiv) explainDiv.innerHTML = `<small class="text-info">💡 Почему: ${data.explanation}</small>`;
+    } catch (error) { console.error(error); }
+}
+async function sendInteraction(materialId, action) {
+    try {
+        const response = await fetch('/api/interaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, item_id: materialId, action: action })
+        });
+        const data = await response.json();
+        if (data.status === 'ok') {
+            loadStats();
+            loadRecommendations();
+            location.reload();
+        } else {
+            alert('Ошибка при отправке');
+        }
+    } catch (error) { console.error(error); alert('Ошибка'); }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadRecentActions();
+    loadRecommendations();
+});
+</script>
+{% endblock %}

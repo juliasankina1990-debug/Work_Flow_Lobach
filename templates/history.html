@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>История действий</h1>
+<table class="table table-dark table-hover">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Действие</th>
+            <th>Материал</th>
+        </tr>
+    </thead>
+    <tbody id="history-table-body">
+        <tr><td colspan="3" class="text-center">Загрузка...</td></tr>
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = {{ user.id }};
+async function loadHistory() {
+    const response = await fetch(`/api/user/${userId}/history`);
+    const history = await response.json();
+    const tbody = document.getElementById('history-table-body');
+    tbody.innerHTML = '';
+    if (history.length) {
+        history.forEach(item => {
+            const actionText = item.action === 'view' ? '👁️ Просмотр' : item.action === 'read' ? '✅ Прочтение' : item.action === 'save' ? '🔖 Сохранение' : item.action;
+            tbody.innerHTML += `<tr><td>${item.date}</td><td>${actionText}</td><td><a href="/material/${item.item_id}">${item.title}</a></td></tr>`;
+        });
+    } else {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Нет действий</td></tr>';
+    }
+}
+loadHistory();
+</script>
+{% endblock %}

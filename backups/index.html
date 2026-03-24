@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Лента материалов</h1>
+        <p class="text-muted">Сравните общую ленту слева с персональными рекомендациями справа</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Левая колонка: Общая лента -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Все материалы подряд</h3>
+                <p class="text-muted mb-0">Традиционный подход — все новости компании в хронологическом порядке</p>
+            </div>
+            <div class="card-body" id="all-materials">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка: Рекомендации -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Персональная подборка</h3>
+                <p class="text-muted mb-0">Материалы, которые могут быть вам интересны на основе вашего профиля и действий</p>
+            </div>
+            <div class="card-body" id="recommendations">
+                <div class="alert alert-info">
+                    ⚙️ Загружаем рекомендации...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<meta name="user-id" content="{{ user.id }}">
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Функция получения текущего user ID из meta-тега
+    function getCurrentUserId() {
+        const meta = document.querySelector('meta[name="user-id"]');
+        return meta ? meta.content : null;
+    }
+
+    // Функция создания карточки материала
+    function createMaterialCard(material, isRecommendation = false, userId) {
+        let explanationHtml = '';
+        if (isRecommendation && userId) {
+            // Асинхронно загружаем объяснение
+            setTimeout(() => loadExplanation(material.id, userId), 100);
+            explanationHtml = `<div id="explain-${material.id}" class="mt-2">
+                <small class="text-muted">⏳ Загрузка объяснения...</small>
+            </div>`;
+        }
+
+        return `
+            <div class="card mb-3" id="card-${material.id}">
+                <div class="card-body">
+                    ${isRecommendation ? '<span class="badge bg-primary mb-2">🤖 ИИ рекомендует</span>' : ''}
+                    <h5 class="card-title">
+                        <a href="/material/${material.id}" class="text-decoration-none">
+                            ${material.title}
+                        </a>
+                    </h5>
+                    <p class="card-text">${material.preview}</p>
+                    <div class="mb-2">
+                        ${(material.tags || []).map(tag => `<span class="badge bg-secondary me-1">#${tag}</span>`).join('')}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">${material.type} • ${material.department} • ${material.date}</small>
+                        <div>
+                            <button onclick="sendInteraction(${material.id}, 'view')" class="btn btn-sm btn-outline-primary">👍 Прочитал</button>
+                            <button onclick="sendInteraction(${material.id}, 'save')" class="btn btn-sm btn-outline-success">🔖 Сохранить</button>
+                        </div>
+                    </div>
+                    ${explanationHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    // Загрузка общей ленты материалов
+    async function loadMaterials() {
+        const container = document.getElementById('all-materials');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Загрузка...</span></div></div>';
+
+        try {
+            const response = await fetch('/api/materials');
+            const data = await response.json();
+            container.innerHTML = '';
+            if (data.materials && data.materials.length) {
+                data.materials.slice(0, 5).forEach(material => {
+                    container.innerHTML += createMaterialCard(material, false);
+                });
+            } else {
+                container.innerHTML = '<div class="alert alert-info">Нет материалов</div>';
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки материалов:', error);
+            container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки материалов</div>';
+        }
+    }
+
+    // Загрузка рекомендаций
+    async function loadRecommendations() {
+        const container = document.getElementById('recommendations');
+        if (!container) return;
+        container.innerHTML = '<div class="alert alert-info">⚙️ Загружаем рекомендации...</div>';
+
+        const userId = getCurrentUserId();
+        if (!userId) {
+            container.innerHTML = '<div class="alert alert-warning">Не удалось определить пользователя</div>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/recommendations/${userId}`);
+            const data = await response.json();
+            container.innerHTML = '';
+
+            if (data.materials && data.materials.length) {
+                data.materials.forEach(material => {
+                    container.innerHTML += createMaterialCard(material, true, userId);
+                });
+            } else {
+                container.innerHTML = '<div class="alert alert-info">Нет рекомендаций</div>';
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки рекомендаций:', error);
+            container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки рекомендаций</div>';
+        }
+    }
+
+    // Загрузка объяснения для рекомендации
+    async function loadExplanation(itemId, userId) {
+        try {
+            const response = await fetch(`/api/recommendations/${userId}/explain/${itemId}`);
+            const data = await response.json();
+            const explainDiv = document.getElementById(`explain-${itemId}`);
+            if (explainDiv) {
+                explainDiv.innerHTML = `<small class="text-info">💡 Почему: ${data.explanation}</small>`;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки объяснения:', error);
+        }
+    }
+
+    // Отправка взаимодействия
+    async function sendInteraction(materialId, action) {
+        const userId = getCurrentUserId();
+        if (!userId) {
+            alert('Ошибка: пользователь не определён');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/interaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    material_id: materialId,
+                    action: action
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'ok') {
+                alert(`Материал ${action === 'view' ? 'отмечен как прочитанный' : 'добавлен в сохраненное'}!`);
+                // Обновляем рекомендации после прочтения
+                if (action === 'view') {
+                    loadRecommendations();
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка отправки:', error);
+            alert('Ошибка при отправке');
+        }
+    }
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Страница загружена');
+        loadMaterials();
+        loadRecommendations();
+    });
+</script>
+{% endblock %}

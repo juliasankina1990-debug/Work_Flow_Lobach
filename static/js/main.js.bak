@@ -1,0 +1,133 @@
+// Загрузка материалов при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname === '/') {
+        loadMaterials();
+        loadRecommendations();
+    }
+});
+
+// Загрузка всех материалов
+async function loadMaterials() {
+    try {
+        const response = await fetch('/api/materials');
+        const data = await response.json();
+        displayMaterials(data.materials);
+    } catch (error) {
+        console.error('Error loading materials:', error);
+    }
+}
+
+// Загрузка рекомендаций
+async function loadRecommendations() {
+    try {
+        // Получаем ID пользователя из meta тега
+        const userId = document.querySelector('meta[name="user-id"]')?.content || 1;
+        const response = await fetch(`/api/recommendations/${userId}`);
+        const data = await response.json();
+        displayRecommendations(data.materials);
+    } catch (error) {
+        console.error('Error loading recommendations:', error);
+    }
+}
+
+// Отображение материалов
+function displayMaterials(materials) {
+    const container = document.getElementById('all-materials');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    materials.slice(0, 5).forEach(material => {
+        container.appendChild(createMaterialCard(material));
+    });
+}
+
+// Отображение рекомендаций
+function displayRecommendations(materials) {
+    const container = document.getElementById('recommendations');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    materials.forEach(material => {
+        const card = createMaterialCard(material);
+        card.classList.add('border-info');
+        const badge = document.createElement('div');
+        badge.className = 'mb-2';
+        badge.innerHTML = '<span class="badge bg-warning">🤖 ИИ РЕКОМЕНДУЕТ</span>';
+        card.querySelector('.card-body').insertBefore(badge, card.querySelector('.card-body').firstChild);
+        container.appendChild(card);
+    });
+}
+
+// Создание карточки материала
+function createMaterialCard(material) {
+    const col = document.createElement('div');
+    col.className = 'col-md-6 mb-3';
+    
+    col.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="badge bg-secondary">${material.type_icon || '📄'} ${material.type}</span>
+                    ${material.tags.map(tag => `<span class="badge bg-info">#${tag}</span>`).join(' ')}
+                </div>
+                <small class="text-muted">
+                    📅 ${material.date} | 🏢 ${material.department}
+                </small>
+                <h5 class="mt-2">
+                    <a href="/material/${material.id}" class="text-decoration-none">
+                        ${material.title}
+                    </a>
+                </h5>
+                <p>${material.preview}</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary read-btn" data-material-id="${material.id}">
+                        👍 Прочитал
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary save-btn" data-material-id="${material.id}">
+                        🔖 Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
+// Отправка взаимодействия
+async function sendInteraction(materialId, action) {
+    try {
+        const userId = document.querySelector('meta[name="user-id"]')?.content;
+        if (!userId) {
+            console.error('No user ID found');
+            return;
+        }
+        
+        const response = await fetch('/api/interaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                material_id: materialId,
+                action: action
+            })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'ok') {
+            alert(`Материал ${action === 'read' ? 'отмечен как прочитанный' : 'добавлен в сохраненное'}!`);
+        }
+    } catch (error) {
+        console.error('Error sending interaction:', error);
+    }
+}
+
+// Обработчики кликов
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('read-btn')) {
+        sendInteraction(e.target.dataset.materialId, 'read');
+    }
+    if (e.target.classList.contains('save-btn')) {
+        sendInteraction(e.target.dataset.materialId, 'save');
+    }
+});

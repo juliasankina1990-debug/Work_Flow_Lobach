@@ -1,0 +1,11 @@
+user_id,username,role,total_interactions,views,reads,saves,top_tags,interaction_score
+1,алексей_волков,user,23,12,5,4,"обучение, {""soft skills"", совещания",35
+5,иван_сидоров,user,9,1,2,3,"{remote, инструменты, collaboration}",21
+2,елена_морозова,user,8,1,3,2,"{python, книга, ""best practices""}",19
+6,мария_иванова,user,5,0,0,3,нет тегов,15
+7,сергей_петров,user,6,1,4,0,"{git, ""version control"", обучение}",12
+4,анна_петрова,user,5,3,1,1,"{python, книга, ""best practices""}",8
+12,admin,admin,0,0,0,0,нет тегов,0
+8,иван,user,1,1,0,0,нет тегов,0
+9,иван_иванов,user,1,1,0,0,нет тегов,0
+11,admin12321,user,0,0,0,0,нет тегов,0

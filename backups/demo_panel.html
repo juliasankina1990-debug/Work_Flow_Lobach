@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Панель управления</h1>
+
+<!-- Кнопка переобучения модели -->
+<div class="mb-3">
+    <button id="retrainBtn" class="btn btn-warning">🔄 Переобучить модель</button>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="demoTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">Пользователи</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab">Материалы</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="demoTabsContent">
+    <!-- Вкладка пользователей -->
+    <div class="tab-pane fade show active" id="users" role="tabpanel">
+        <h3>Пользователи</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя</th>
+                    <th>Должность</th>
+                    <th>Отдел</th>
+                    <th>Проекты</th>
+                    <th>Роль</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.position }}</td>
+                    <td>{{ user.department }}</td>
+                    <td>{{ user.projects }}</td>
+                    <td>{{ user.role }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Вкладка материалов -->
+    <div class="tab-pane fade" id="materials" role="tabpanel">
+        <h3>Материалы</h3>
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#itemModal" onclick="clearItemForm()">➕ Добавить материал</button>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Отдел</th>
+                    <th>Теги</th>
+                    <th>Просмотры</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="materials-table-body">
+                {% for material in materials %}
+                <tr id="item-{{ material.id }}">
+                    <td>{{ material.id }}</td>
+                    <td>{{ material.title }}</td>
+                    <td>{{ material.type }}</td>
+                    <td>{{ material.department }}</td>
+                    <td>{{ material.tags }}</td>
+                    <td>{{ material.views }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="editItem({{ material.id }})">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteItem({{ material.id }})">🗑️</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно для создания/редактирования материала -->
+<div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Создать материал</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="itemForm">
+                    <input type="hidden" id="itemId">
+                    <div class="mb-3">
+                        <label>Название</label>
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Тип</label>
+                        <input type="text" class="form-control" id="type" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Теги (через запятую)</label>
+                        <input type="text" class="form-control" id="tags">
+                    </div>
+                    <div class="mb-3">
+                        <label>Отдел</label>
+                        <input type="text" class="form-control" id="department">
+                    </div>
+                    <div class="mb-3">
+                        <label>Краткое описание</label>
+                        <textarea class="form-control" id="preview" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Полный текст</label>
+                        <textarea class="form-control" id="content" rows="5"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Автор</label>
+                        <input type="text" class="form-control" id="author">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveItem()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Переобучение модели
+document.getElementById('retrainBtn').addEventListener('click', async function() {
+    if (!confirm('Запустить переобучение модели?')) return;
+    const response = await fetch('/api/recommender/retrain', { method: 'POST' });
+    const data = await response.json();
+    alert(data.message);
+});
+
+// Работа с материалами
+function clearItemForm() {
+    document.getElementById('itemId').value = '';
+    document.getElementById('title').value = '';
+    document.getElementById('type').value = '';
+    document.getElementById('tags').value = '';
+    document.getElementById('department').value = '';
+    document.getElementById('preview').value = '';
+    document.getElementById('content').value = '';
+    document.getElementById('author').value = '';
+    document.getElementById('modalTitle').innerText = 'Создать материал';
+}
+
+async function editItem(id) {
+    const response = await fetch(`/api/items/${id}`);
+    if (!response.ok) return alert('Ошибка загрузки');
+    const item = await response.json();
+    document.getElementById('itemId').value = item.id;
+    document.getElementById('title').value = item.title;
+    document.getElementById('type').value = item.type;
+    document.getElementById('tags').value = item.tags;
+    document.getElementById('department').value = item.department;
+    document.getElementById('preview').value = item.preview;
+    document.getElementById('content').value = item.content;
+    document.getElementById('author').value = item.author;
+    document.getElementById('modalTitle').innerText = 'Редактировать материал';
+    new bootstrap.Modal(document.getElementById('itemModal')).show();
+}
+
+async function saveItem() {
+    const id = document.getElementById('itemId').value;
+    const data = {
+        title: document.getElementById('title').value,
+        type: document.getElementById('type').value,
+        tags: document.getElementById('tags').value.split(',').map(s => s.trim()).filter(s => s),
+        department: document.getElementById('department').value,
+        preview: document.getElementById('preview').value,
+        content: document.getElementById('content').value,
+        author: document.getElementById('author').value
+    };
+    const url = id ? `/api/items/${id}` : '/api/items';
+    const method = id ? 'PUT' : 'POST';
+    const response = await fetch(url, {
+        method: method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert('Ошибка сохранения');
+    }
+}
+
+async function deleteItem(id) {
+    if (!confirm('Удалить материал?')) return;
+    const response = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+        document.getElementById(`item-${id}`).remove();
+    } else {
+        alert('Ошибка удаления');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Вход в систему</h3>
+            </div>
+            <div class="card-body">
+                <p>Выберите пользователя для входа:</p>
+                <div class="list-group">
+                    {% for id, user in users.items() %}
+                    <button class="list-group-item list-group-item-action user-select" data-user-id="{{ id }}">
+                        <div class="d-flex align-items-center">
+                            <span class="fs-1 me-3">{{ user.avatar }}</span>
+                            <div>
+                                <h5>{{ user.name }}</h5>
+                                <p class="mb-0">{{ user.position }} • {{ user.department }}</p>
+                            </div>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.user-select').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const userId = this.dataset.userId;
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: userId})
+            });
+            const data = await response.json();
+            if (data.status === 'ok') {
+                window.location.href = data.redirect || '/';
+            }
+        });
+    });
+</script>
+{% endblock %}

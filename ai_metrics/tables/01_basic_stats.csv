@@ -1,0 +1,2 @@
+total_users,total_materials,total_interactions,views,reads,saves,shares,avg_views_per_material,avg_reads_per_user,users_by_role,materials_by_type
+10,115,58,20,15,13,10,0.17,1.5,"{'admin': 1, 'user': 9}","{'Статья': 84, 'Обучение': 4, 'Шаблон': 1, 'Книга': 1, 'Документ': 1, 'Документация': 1, 'Новость': 11, 'Вакансия': 1, 'Отчёт': 1, 'Карьера': 1, 'Рецепт': 9}"

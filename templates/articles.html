@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Статьи</h1>
+<ul class="nav nav-tabs" id="articleTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button">Все статьи</button></li>
+    <li class="nav-item"><button class="nav-link" id="recommended-tab" data-bs-toggle="tab" data-bs-target="#recommended" type="button">Рекомендованные</button></li>
+</ul>
+<div class="tab-content mt-3" id="articleTabsContent">
+    <div class="tab-pane fade show active" id="all" role="tabpanel">
+        <div id="all-materials" class="row">Загрузка...</div>
+    </div>
+    <div class="tab-pane fade" id="recommended" role="tabpanel">
+        <div id="recommended-materials" class="row">Загрузка...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = {{ user.id }};
+async function loadAllMaterials() {
+    const container = document.getElementById('all-materials');
+    container.innerHTML = '<div class="col-12 text-center">Загрузка...</div>';
+    const response = await fetch('/api/materials');
+    const data = await response.json();
+    container.innerHTML = '';
+    if (data.materials && data.materials.length) {
+        data.materials.forEach(m => container.innerHTML += createMaterialCard(m));
+    } else {
+        container.innerHTML = '<p class="text-muted">Нет материалов</p>';
+    }
+}
+async function loadRecommended() {
+    const container = document.getElementById('recommended-materials');
+    container.innerHTML = '<div class="col-12 text-center">Загрузка...</div>';
+    const response = await fetch(`/api/recommendations/${userId}`);
+    const data = await response.json();
+    container.innerHTML = '';
+    if (data.materials && data.materials.length) {
+        data.materials.forEach(m => container.innerHTML += createMaterialCard(m, true));
+    } else {
+        container.innerHTML = '<p class="text-muted">Нет рекомендаций</p>';
+    }
+}
+function createMaterialCard(material, isRecommendation = false) {
+    let statusIcons = '';
+    if (material.is_viewed) statusIcons += '<span class="badge bg-secondary me-1" title="Просмотрено">👁️</span>';
+    if (material.is_read) statusIcons += '<span class="badge bg-success me-1" title="Прочитано">✅</span>';
+    if (material.is_saved) statusIcons += '<span class="badge bg-warning me-1" title="Сохранено">🔖</span>';
+    let explanationHtml = '';
+    if (isRecommendation) {
+        setTimeout(() => loadExplanation(material.id, userId), 100);
+        explanationHtml = `<div id="explain-${material.id}" class="mt-2"><small class="text-muted">⏳ Загрузка объяснения...</small></div>`;
+    }
+    return `
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>${statusIcons}</div>
+                        ${isRecommendation ? '<span class="badge bg-primary">🤖 ИИ рекомендует</span>' : ''}
+                    </div>
+                    <h5><a href="/material/${material.id}" class="text-light">${material.title}</a></h5>
+                    <p>${material.preview}</p>
+                    <div class="mb-2">${(material.tags || []).map(t => `<span class="badge bg-secondary">#${t}</span>`).join(' ')}</div>
+                    <div>
+                        <button onclick="sendInteraction(${material.id}, 'view')" class="btn btn-sm btn-outline-info" ${material.is_viewed ? 'disabled' : ''}>👁️</button>
+                        <button onclick="sendInteraction(${material.id}, 'read')" class="btn btn-sm btn-outline-success" ${material.is_read ? 'disabled' : ''}>✅</button>
+                        <button onclick="sendInteraction(${material.id}, 'save')" class="btn btn-sm btn-outline-warning" ${material.is_saved ? 'disabled' : ''}>🔖</button>
+                    </div>
+                    ${explanationHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+async function loadExplanation(itemId, userId) {
+    try {
+        const response = await fetch(`/api/recommendations/${userId}/explain/${itemId}`);
+        const data = await response.json();
+        const explainDiv = document.getElementById(`explain-${itemId}`);
+        if (explainDiv) explainDiv.innerHTML = `<small class="text-info">💡 Почему: ${data.explanation}</small>`;
+    } catch (error) { console.error(error); }
+}
+async function sendInteraction(materialId, action) {
+    try {
+        await fetch('/api/interaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, item_id: materialId, action: action })
+        });
+        location.reload();
+    } catch (error) { console.error(error); }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllMaterials();
+    loadRecommended();
+});
+</script>
+{% endblock %}

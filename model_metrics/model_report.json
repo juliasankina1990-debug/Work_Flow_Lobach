@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-03-17 06:01:05",
+  "model_info": {
+    "model_loaded": true,
+    "model_type": "LightFM (гибридная коллаборативная)",
+    "learning_rate": 0.05,
+    "epochs": 30,
+    "no_components": 20,
+    "users_in_dataset": 47,
+    "items_in_dataset": 115,
+    "user_features_count": 47,
+    "item_features_count": 115
+  },
+  "training_data": {
+    "total_interactions": 3609,
+    "action_distribution": {
+      "view": 1404,
+      "read": 1654,
+      "save": 522,
+      "share": 29
+    },
+    "users_with_interactions": 47,
+    "avg_interactions_per_user": 76.7872340425532,
+    "min_interactions_per_user": 47,
+    "max_interactions_per_user": 95,
+    "items_with_interactions": 115,
+    "avg_interactions_per_item": 31.382608695652173,
+    "min_interactions_per_item": 8,
+    "max_interactions_per_item": 102,
+    "total_weighted_interactions": 9266,
+    "sparsity": 0.3322849213691027
+  },
+  "key_metrics": {
+    "precision_at_1": 23.33,
+    "precision_at_3": 6.67,
+    "precision_at_5": 7.33,
+    "precision_at_10": 1.33,
+    "recall_at_5": 5.5,
+    "ndcg_at_5": 27.47,
+    "coverage": 58.26,
+    "diversity": 48.42,
+    "novelty": 36.39
+  },
+  "metrics_vs_k": [
+    {
+      "k": 1,
+      "precision": 20.0,
+      "recall": 1.03,
+      "f1": 1.95
+    },
+    {
+      "k": 3,
+      "precision": 28.33,
+      "recall": 4.41,
+      "f1": 7.63
+    },
+    {
+      "k": 5,
+      "precision": 22.0,
+      "recall": 5.6,
+      "f1": 8.93
+    },
+    {
+      "k": 10,
+      "precision": 13.5,
+      "recall": 6.5,
+      "f1": 8.77
+    }
+  ],
+  "summary": {
+    "total_graphs": 6,
+    "total_tables": 5,
+    "model_quality_score": 23.855555555555554
+  }
+}

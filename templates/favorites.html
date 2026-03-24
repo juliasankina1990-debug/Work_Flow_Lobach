@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Избранное</h1>
+<div id="favorites-list" class="row">
+    <div class="col-12 text-center">Загрузка...</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = {{ user.id }};
+async function loadFavorites() {
+    const container = document.getElementById('favorites-list');
+    container.innerHTML = '<div class="col-12 text-center">Загрузка...</div>';
+    const response = await fetch(`/api/user/${userId}/favorites`);
+    const data = await response.json();
+    container.innerHTML = '';
+    if (data.materials && data.materials.length) {
+        data.materials.forEach(m => container.innerHTML += createMaterialCard(m));
+    } else {
+        container.innerHTML = '<p class="text-muted">Нет сохранённых статей</p>';
+    }
+}
+function createMaterialCard(material) {
+    let statusIcons = '';
+    if (material.is_viewed) statusIcons += '<span class="badge bg-secondary me-1">👁️</span>';
+    if (material.is_read) statusIcons += '<span class="badge bg-success me-1">✅</span>';
+    if (material.is_saved) statusIcons += '<span class="badge bg-warning me-1">🔖</span>';
+    return `
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div>${statusIcons}</div>
+                    <h5><a href="/material/${material.id}" class="text-light">${material.title}</a></h5>
+                    <p>${material.preview}</p>
+                    <div>${(material.tags || []).map(t => `<span class="badge bg-secondary">#${t}</span>`).join(' ')}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+loadFavorites();
+</script>
+{% endblock %}

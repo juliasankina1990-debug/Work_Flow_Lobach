@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Главная</a></li>
+                <li class="breadcrumb-item active">{{ material.title }}</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>{{ material.title }}</h2>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-secondary">{{ material.type }}</span>
+                    <small class="text-muted">{{ material.date }} • {{ material.views }} просмотров</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    {% for tag in material.get_tags_list() %}
+                    <span class="badge bg-info me-1">#{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="content">
+                    {{ material.content | safe }}
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Автор:</strong> {{ material.author }}
+                    </div>
+                    <div>
+                        <button onclick="sendInteraction({{ material.id }}, 'read')" class="btn btn-primary">📚 Отметить прочитанным</button>
+                        <button onclick="sendInteraction({{ material.id }}, 'save')" class="btn btn-success">🔖 Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function sendInteraction(materialId, action) {
+        const userId = {{ user.id }};
+        try {
+            const response = await fetch('/api/interaction', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: userId,
+                    material_id: materialId,
+                    action: action
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'ok') {
+                alert('Действие сохранено!');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при сохранении');
+        }
+    }
+</script>
+{% endblock %}

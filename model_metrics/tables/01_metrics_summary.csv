@@ -1,0 +1,7 @@
+metric,value
+precision_at_1,23.33
+precision_at_3,6.67
+precision_at_5,7.33
+precision_at_10,1.33
+recall_at_5,5.5
+ndcg_at_5,27.47
